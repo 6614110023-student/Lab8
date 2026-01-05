@@ -8,7 +8,7 @@ void main() => runApp(const MovieRankerApp());
 class Movie {
   String name;
   String description;
-  String? imagePath; // Local file path
+  String? imagePath;
 
   Movie({required this.name, required this.description, this.imagePath});
 }
@@ -19,7 +19,10 @@ class MovieRankerApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      theme: ThemeData(colorSchemeSeed: Colors.blue, useMaterial3: true),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.redAccent, brightness: Brightness.dark),
+        useMaterial3: true,
+      ),
       home: const MovieListScreen(),
     );
   }
@@ -34,6 +37,7 @@ class MovieListScreen extends StatefulWidget {
 class _MovieListScreenState extends State<MovieListScreen> {
   final List<Movie> _movies = [];
 
+  // Dialog for Adding/Editing
   void _showMovieDialog({Movie? movie, int? index}) {
     final nameController = TextEditingController(text: movie?.name ?? "");
     final descController = TextEditingController(text: movie?.description ?? "");
@@ -41,43 +45,38 @@ class _MovieListScreenState extends State<MovieListScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => StatefulBuilder( // StatefulBuilder allows updating dialog UI
+      builder: (context) => StatefulBuilder(
         builder: (context, setDialogState) => AlertDialog(
-          title: Text(movie == null ? "Add Movie" : "Edit Movie"),
-          content: SingleChildScrollView(
+          title: Text(movie == null ? "Add Movie" : "Edit Details"),
+          content: SizedBox(
+            width: 350,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                TextField(controller: nameController, decoration: const InputDecoration(labelText: "Movie Name")),
+                TextField(controller: nameController, decoration: const InputDecoration(labelText: "Movie Title")),
                 TextField(controller: descController, decoration: const InputDecoration(labelText: "Description")),
                 const SizedBox(height: 20),
-                
-                // Drag and Drop Zone
                 DropTarget(
-                  onDragDone: (detail) {
-                    setDialogState(() => selectedPath = detail.files.first.path);
-                  },
+                  onDragDone: (detail) => setDialogState(() => selectedPath = detail.files.first.path),
                   child: GestureDetector(
                     onTap: () async {
                       FilePickerResult? result = await FilePicker.platform.pickFiles(type: FileType.image);
-                      if (result != null) {
-                        setDialogState(() => selectedPath = result.files.single.path);
-                      }
+                      if (result != null) setDialogState(() => selectedPath = result.files.single.path);
                     },
                     child: Container(
-                      height: 120,
-                      width: double.maxFinite,
+                      height: 150,
+                      width: 100,
                       decoration: BoxDecoration(
-                        color: Colors.grey[200],
-                        border: Border.all(color: Colors.blueAccent, style: BorderStyle.solid),
-                        borderRadius: BorderRadius.circular(8),
+                        color: Colors.white10,
+                        border: Border.all(color: Colors.redAccent, style: BorderStyle.solid),
+                        borderRadius: BorderRadius.circular(12),
                       ),
                       child: selectedPath == null
-                          ? const Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [Icon(Icons.upload_file), Text("Drag & Drop or Click to Upload")],
-                            )
-                          : Image.file(File(selectedPath!), fit: BoxFit.cover),
+                          ? const Icon(Icons.add_a_photo, size: 30)
+                          : ClipRRect(
+                              borderRadius: BorderRadius.circular(10),
+                              child: Image.file(File(selectedPath!), fit: BoxFit.cover),
+                            ),
                     ),
                   ),
                 ),
@@ -89,12 +88,8 @@ class _MovieListScreenState extends State<MovieListScreen> {
             ElevatedButton(
               onPressed: () {
                 setState(() {
-                  final newMovie = Movie(name: nameController.text, description: descController.text, imagePath: selectedPath);
-                  if (movie == null) {
-                    _movies.add(newMovie);
-                  } else {
-                    _movies[index!] = newMovie;
-                  }
+                  final m = Movie(name: nameController.text, description: descController.text, imagePath: selectedPath);
+                  movie == null ? _movies.add(m) : _movies[index!] = m;
                 });
                 Navigator.pop(context);
               },
@@ -110,10 +105,17 @@ class _MovieListScreenState extends State<MovieListScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text("Windows Movie Ranker"),
-        actions: [IconButton(icon: const Icon(Icons.delete_forever), onPressed: () => setState(() => _movies.clear()))],
+        title: const Text("MOVIE RANKINGS"),
+        actions: [
+          TextButton.icon(
+            onPressed: () => setState(() => _movies.clear()),
+            icon: const Icon(Icons.clear_all, color: Colors.white),
+            label: const Text("Clear List", style: TextStyle(color: Colors.white)),
+          )
+        ],
       ),
       body: ReorderableListView.builder(
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
         itemCount: _movies.length,
         onReorder: (oldIdx, newIdx) {
           setState(() {
@@ -125,32 +127,85 @@ class _MovieListScreenState extends State<MovieListScreen> {
           final movie = _movies[index];
           return Dismissible(
             key: ValueKey(movie.name + index.toString()),
-            background: Container(color: Colors.red, child: const Icon(Icons.delete, color: Colors.white)),
+            direction: DismissDirection.endToStart,
             onDismissed: (_) => setState(() => _movies.removeAt(index)),
+            background: Container(
+              color: Colors.red,
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 20),
+              child: const Icon(Icons.delete_sweep, size: 30),
+            ),
             child: Card(
               key: ValueKey(movie),
-              child: ListTile(
-                leading: CircleAvatar(child: Text("${index + 1}")),
-                title: Text(movie.name),
-                subtitle: Text(movie.description),
-                trailing: SizedBox(
-                  width: 100,
-                  child: Row(
-                    children: [
-                      if (movie.imagePath != null) 
-                        Image.file(File(movie.imagePath!), width: 40, height: 40, fit: BoxFit.cover)
-                      else 
-                        const Icon(Icons.image_not_supported),
-                      IconButton(icon: const Icon(Icons.edit), onPressed: () => _showMovieDialog(movie: movie, index: index)),
-                    ],
-                  ),
+              margin: const EdgeInsets.only(bottom: 15),
+              child: IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
+                    // Large Poster Image on Left
+                    Padding(
+                      padding: const EdgeInsets.all(8.0),
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Container(
+                          width: 90,
+                          height: 130,
+                          color: Colors.black38,
+                          child: movie.imagePath != null
+                              ? Image.file(File(movie.imagePath!), fit: BoxFit.cover)
+                              : const Icon(Icons.movie, size: 40),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    // Movie Details
+                    Expanded(
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            "#${index + 1} ${movie.name}",
+                            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.redAccent),
+                          ),
+                          const SizedBox(height: 5),
+                          Text(movie.description, maxLines: 2, overflow: TextOverflow.ellipsis),
+                        ],
+                      ),
+                    ),
+                    // Action Buttons (Edit & Remove)
+                    Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit, color: Colors.blue),
+                          onPressed: () => _showMovieDialog(movie: movie, index: index),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_outline, color: Colors.red),
+                          onPressed: () {
+                            setState(() => _movies.removeAt(index));
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              SnackBar(content: Text("${movie.name} deleted")),
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                    const SizedBox(width: 10),
+                    const Icon(Icons.drag_handle, color: Colors.white24),
+                    const SizedBox(width: 10),
+                  ],
                 ),
               ),
             ),
           );
         },
       ),
-      floatingActionButton: FloatingActionButton(onPressed: () => _showMovieDialog(), child: const Icon(Icons.add)),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => _showMovieDialog(),
+        child: const Icon(Icons.add),
+      ),
     );
   }
 }
