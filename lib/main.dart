@@ -1,122 +1,139 @@
 import 'package:flutter/material.dart';
 
 void main() {
-  runApp(const MyApp());
+  runApp(const MovieRankerApp());
 }
 
-class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+class Movie {
+  String name;
+  String description;
+  String imageUrl;
 
-  // This widget is the root of your application.
+  Movie({required this.name, required this.description, required this.imageUrl});
+}
+
+class MovieRankerApp extends StatelessWidget {
+  const MovieRankerApp({super.key});
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(primarySwatch: Colors.indigo, useMaterial3: true),
+      home: const MovieListScreen(),
     );
   }
 }
 
-class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
-  final String title;
+class MovieListScreen extends StatefulWidget {
+  const MovieListScreen({super.key});
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  State<MovieListScreen> createState() => _MovieListScreenState();
 }
 
-class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+class _MovieListScreenState extends State<MovieListScreen> {
+  final List<Movie> _movies = [
+    Movie(name: "Inception", description: "Dream within a dream.", imageUrl: "https://via.placeholder.com/150"),
+    Movie(name: "Interstellar", description: "Space and time travel.", imageUrl: "https://via.placeholder.com/150"),
+  ];
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  // Function to show Add/Edit Dialog
+  void _showMovieDialog({Movie? movie, int? index}) {
+    final nameController = TextEditingController(text: movie?.name ?? "");
+    final descController = TextEditingController(text: movie?.description ?? "");
+    final imgController = TextEditingController(text: movie?.imageUrl ?? "https://via.placeholder.com/150");
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(movie == null ? "Add New Movie" : "Edit Movie"),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(controller: nameController, decoration: const InputDecoration(labelText: "Movie Name")),
+            TextField(controller: descController, decoration: const InputDecoration(labelText: "Description")),
+            TextField(controller: imgController, decoration: const InputDecoration(labelText: "Image URL")),
+          ],
+        ),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context), child: const Text("Cancel")),
+          ElevatedButton(
+            onPressed: () {
+              setState(() {
+                if (movie == null) {
+                  _movies.add(Movie(name: nameController.text, description: descController.text, imageUrl: imgController.text));
+                } else {
+                  _movies[index!] = Movie(name: nameController.text, description: descController.text, imageUrl: imgController.text);
+                }
+              });
+              Navigator.pop(context);
+            },
+            child: const Text("Save"),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
-        title: Text(widget.title),
+        title: const Text("Movie Rankings"),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.delete_sweep),
+            onPressed: () => setState(() => _movies.clear()),
+            tooltip: "Clear All",
+          )
+        ],
       ),
-      body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
-        child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
+      body: _movies.isEmpty
+          ? const Center(child: Text("No movies in the list. Add some!"))
+          : ReorderableListView.builder(
+              itemCount: _movies.length,
+              onReorder: (oldIndex, newIndex) {
+                setState(() {
+                  if (newIndex > oldIndex) newIndex -= 1;
+                  final item = _movies.removeAt(oldIndex);
+                  _movies.insert(newIndex, item);
+                });
+              },
+              itemBuilder: (context, index) {
+                final movie = _movies[index];
+                return Dismissible(
+                  key: ValueKey(movie.name + index.toString()),
+                  background: Container(color: Colors.red, alignment: Alignment.centerRight, padding: const EdgeInsets.only(right: 20), child: const Icon(Icons.delete, color: Colors.white)),
+                  onDismissed: (direction) {
+                    setState(() => _movies.removeAt(index));
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text("${movie.name} removed")));
+                  },
+                  child: Card(
+                    margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                    child: ListTile(
+                      leading: CircleAvatar(
+                        backgroundColor: Colors.indigo,
+                        child: Text("#${index + 1}", style: const TextStyle(color: Colors.white)),
+                      ),
+                      title: Text(movie.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+                      subtitle: Text(movie.description),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Image.network(movie.imageUrl, width: 40, errorBuilder: (c, e, s) => const Icon(Icons.movie)),
+                          IconButton(icon: const Icon(Icons.edit), onPressed: () => _showMovieDialog(movie: movie, index: index)),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              },
             ),
-          ],
-        ),
-      ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
+        onPressed: () => _showMovieDialog(),
         child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+      ),
     );
   }
 }
